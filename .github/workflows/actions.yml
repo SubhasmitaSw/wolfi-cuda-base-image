@@ -18,7 +18,9 @@ jobs:
 
       - name: Convert repository owner lowercase
         id: repo_owner
-        run: echo "repo_owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        run: |
+            echo "repo_owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+            echo "repo_name=$(echo ${{ github.repository }} | tr '[:upper:] '[:lower:]')" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -43,7 +45,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ env.repo_owner }}/test-image:latest
+          tags: ghcr.io/${{ env.repo_owner }}/${{ env.repo_name }}/test-image:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           secrets: |
