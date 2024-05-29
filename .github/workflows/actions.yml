@@ -16,24 +16,40 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Convert repository owner and repository name to lowercase
-        id: repo_info
-        run: |
-          echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - name: Convert repository owner lowercase
+        id: repo_owner
+        run: echo "repo_owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GH_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+           path: /tmp/.buildx-cache
+           key: ${{ runner.os }}-buildx-${{ github.sha }}
+           restore-keys: |
+            ${{ runner.os }}-buildx-
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v2
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ env.REPO_OWNER }}/test-image:latest
+          tags: ghcr.io/${{ env.repo_owner }}/test-image:latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          secrets: |
+            GIT_AUTH_TOKEN=${{ secrets.GH_TOKEN }}
 
-      - name: Log out from GitHub Container Registry
-        run: docker logout ghcr.io
+      - name: Move Docker cache
+        run: |
+            rm -rf /tmp/.buildx-cache
+            mv /tmp/.buildx-cache-new /tmp/.buildx-cache
