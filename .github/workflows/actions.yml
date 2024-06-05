@@ -27,4 +27,4 @@ jobs:
         env:
             registry: ghcr.io
             username: ${{ github.repository_owner }}
-            password: ${{ secrets.GH_TOKEN }}
+            password: ${{ secrets.GH_PAT }}
