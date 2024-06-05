@@ -52,7 +52,7 @@ async def main():
             for python_version in PYTHON_VERSIONS
         ]
 
-        await dagger.parallel(tasks)
+        await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
     asyncio.run(main())
