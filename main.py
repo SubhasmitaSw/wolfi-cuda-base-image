@@ -6,19 +6,19 @@ import os
 # Define configurations
 OS_VERSIONS = ["jammy", "focal"]
 CUDA_VERSIONS = ["12.4.1", "11.8.0"]
-CONTAINER_TYPES = ["", "pytorch", "tensorflow=2.15.0"]
+CONTAINER_TYPES = ["", "pytorch", "nvidia", "tensorflow=2.15.0"]
 PYTHON_VERSIONS = ["3.10", "3.11"]
 
-# Set the maximum number of concurrent tasks
-MAX_CONCURRENT_TASKS = 4
+async def build_and_publish_image(client, os_version, cuda_version, container_type, python_version, repository, username, password):
 
-async def build_image(client, os_version, cuda_version, container_type, python_version, username, password):
-    # Determine image reference
+     # Determine image reference
     container_type_tag = "base" if container_type == "" else "tensorflow" if "tensorflow" in container_type else container_type
     img_ref = f"civo_{os_version}_python_{python_version}_cuda_{cuda_version}_{container_type_tag}"
 
-    # Set up Docker container
+    # Set up the base container
     base_image = f"ghcr.io/mamba-org/micromamba:{os_version}-cuda-{cuda_version}"
+
+    secret = client.set_secret("password", password)
     container = (
         client.container()
         .from_(base_image)
@@ -26,62 +26,37 @@ async def build_image(client, os_version, cuda_version, container_type, python_v
         .with_workdir("/app")
         .with_exec(["/bin/sh", "-c", f"micromamba install -y -n base -c conda-forge {container_type} python={python_version} && micromamba clean --all --yes && micromamba list"])
         .with_env_variable("MAMBA_DOCKERFILE_ACTIVATE", "1")
-        .with_registry_auth(address=f"https://ghcr.io", secret=client.set_secret(name="password", plaintext=password), username=username)
+        # add LABEL to the dockerfile to automatically associate the image with the repository on container registry
+        .with_label("org.opencontainers.image.source", f"https://github.com/{username}/{repository}")
+        .with_registry_auth(address="ghcr.io", username=username, secret=secret)
     )
 
-    # Publish Docker image
-    await container.publish(f"{img_ref}")
-
-    # Display build logs
-    try:
-        async for line in container.logs():
-            print(line)
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
-    
-    return True
+    await container.publish(f"ghcr.io/{username}/{img_ref}")
 
 
 async def main():
-    # Get authentication details
+    repository = "wolfi-cuda-base-image"
     username = os.environ.get("username")
     password = os.environ.get("password")
 
     if not username or not password:
         print("Environment variables 'username' and 'password' are required.")
         return
-
+    
+    
     async with dagger.Connection(dagger.Config(log_output=sys.stderr)) as client:
-        # Create a bounded semaphore with the maximum number of concurrent tasks
-        semaphore = asyncio.BoundedSemaphore(MAX_CONCURRENT_TASKS)
+        tasks = [
+                build_and_publish_image(client, os_version, cuda_version, container_type, python_version, repository, username, password)
+                for os_version in OS_VERSIONS
+                for cuda_version in CUDA_VERSIONS
+                for container_type in CONTAINER_TYPES
+                for python_version in PYTHON_VERSIONS
+            ]
 
-        # Build images for all combinations of configurations
-        tasks = []
-        for os_version in OS_VERSIONS:
-            for cuda_version in CUDA_VERSIONS:
-                for container_type in CONTAINER_TYPES:
-                    for python_version in PYTHON_VERSIONS:
-                        # Acquire the semaphore before starting a task
-                        await semaphore.acquire()
-                        task = build_image(client, os_version, cuda_version, container_type, python_version, username, password)
-                        # Release the semaphore after the task is done
-                        task.add_done_callback(lambda t: semaphore.release())
-                        tasks.append(task)
-
-        # Execute tasks concurrently
-        results = await asyncio.gather(*tasks)
-        
-        # Display errors, if any
-        for os_version, cuda_version, container_type, python_version, success in zip(
-                [os_version for os_version in OS_VERSIONS for _ in range(len(CUDA_VERSIONS) * len(CONTAINER_TYPES) * len(PYTHON_VERSIONS))],
-                [cuda_version for _ in range(len(OS_VERSIONS)) for cuda_version in CUDA_VERSIONS for _ in range(len(CONTAINER_TYPES) * len(PYTHON_VERSIONS))],
-                [container_type for _ in range(len(OS_VERSIONS) * len(CUDA_VERSIONS)) for container_type in CONTAINER_TYPES for _ in range(len(PYTHON_VERSIONS))],
-                [python_version for _ in range(len(OS_VERSIONS) * len(CUDA_VERSIONS) * len(CONTAINER_TYPES)) for python_version in PYTHON_VERSIONS],
-                results):
-            if not success:
-                print(f"Error encountered during build for {os_version}, {cuda_version}, {container_type}, {python_version}")
+        await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+    print("Images built and published successfully!")
