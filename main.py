@@ -6,7 +6,7 @@ import os
 # Define configurations
 OS_VERSIONS = ["jammy", "focal"]
 CUDA_VERSIONS = ["12.4.1", "11.8.0"]
-CONTAINER_TYPES = ["", "pytorch", "nvidia", "tensorflow=2.15.0"]
+CONTAINER_TYPES = ["", "pytorch", "tensorflow=2.15.0"]
 PYTHON_VERSIONS = ["3.10", "3.11"]
 
 async def build_and_publish_image(client, os_version, cuda_version, container_type, python_version, repository, username, password):
