@@ -15,18 +15,16 @@ jobs:
 
       - name: Install deps
         run: pip install dagger-io
+        
       - name: Install Dagger CLI
         run: cd /usr/local && { curl -L https://dl.dagger.io/dagger/install.sh | sh; cd -; }
 
       - name: Convert repository owner and repository name to lowercase
         run: |
           echo "REPOSITORY_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "REPOSITORY_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Run dagger pipeline
         run: python main.py
         env:
-            registry: ghcr.io
-            username: ${{ github.repository_owner }}
+            username: ${{ env.REPOSITORY_OWNER }}
             password: ${{ secrets.GH_PAT }}
-            repository: ${{ github.repository }}
