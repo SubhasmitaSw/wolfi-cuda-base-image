@@ -4,8 +4,8 @@ import dagger
 import os
 
 # Define configurations
-OS_VERSIONS = ["jammy", "focal"]
-CUDA_VERSIONS = ["12.4.1", "11.8.0"]
+OS_VERSIONS = ["jammy"]
+CUDA_VERSIONS = ["12.4.1"]
 CONTAINER_TYPES = ["", "pytorch", "tensorflow=2.15.0"]
 PYTHON_VERSIONS = ["3.10", "3.11"]
 
