@@ -4,16 +4,16 @@ import dagger
 import os
 
 # Define configurations
-OS_VERSIONS = ["jammy"]
-CUDA_VERSIONS = ["12.4.1"]
+OS_VERSIONS = ["jammy", "focal"]
+CUDA_VERSIONS = ["12.4.1", "11.8.0"]
 CONTAINER_TYPES = ["", "pytorch", "tensorflow=2.15.0"]
-PYTHON_VERSIONS = ["3.10", "3.11"]
+PYTHON_VERSIONS = ["3.11"]
 
 async def build_and_publish_image(client, os_version, cuda_version, container_type, python_version, repository, username, password):
 
      # Determine image reference
     container_type_tag = "base" if container_type == "" else "tensorflow" if "tensorflow" in container_type else container_type
-    img_ref = f"civo_{os_version}_python_{python_version}_cuda_{cuda_version}_{container_type_tag}"
+    img_ref = f"{os_version}_python_{python_version}_cuda_{cuda_version}_{container_type_tag}"
 
     # Set up the base container
     base_image = f"ghcr.io/mamba-org/micromamba:{os_version}-cuda-{cuda_version}"
