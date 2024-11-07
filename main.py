@@ -16,7 +16,7 @@ async def build_and_publish_image(client, os_version, cuda_version, container_ty
     container_type_tag = "base" if container_type == "" else "tensorflow" if "tensorflow" in container_type else container_type
     img_ref = f"{os_version}_python_{python_version}_cuda_{cuda_version}_{container_type_tag}"
 
-    # # Set up the base container with micromamba 
+    # # Set up the base container with micromamba  
     # base_image = f"ghcr.io/mamba-org/micromamba:{os_version}-cuda-{cuda_version}"
 
     # Set up the base container with wolfi 
@@ -30,9 +30,9 @@ async def build_and_publish_image(client, os_version, cuda_version, container_ty
         .with_user("root")
         .with_workdir("/app")
         # Install Micromamba
-        .with_exec(["/bin/sh", "-c", "apk add --no-cache curl bash && curl -Ls https://micro.mamba.pm/install.sh | bash && apk del bash"])
+        .with_exec(["/bin/sh", "-c", "apk add --no-cache curl bash && curl -Ls https://micro.mamba.pm/install.sh | bash && apk del bash", "--shell", "bash"])
         # Install packages using Micromamba
-        .with_exec(["/bin/sh", "-c", f"micromamba install -y -n base -c conda-forge {container_type} python={python_version} && micromamba clean --all --yes && micromamba list"])
+        .with_exec(["/bin/sh", "-c", f"micromamba install -y -n base -c conda-forge {container_type} python={python_version} && micromamba clean --all --yes && micromamba list", "--shell", "bash"])
         .with_label("org.opencontainers.image.source", f"https://github.com/{username}/{repository}")
         .with_registry_auth(address="ghcr.io", username=username, secret=secret)
     )
