@@ -41,7 +41,8 @@ async def build_and_publish_image(client, os_version, cuda_version, container_ty
         .from_(base_image)
         .with_user("root")
         .with_workdir("/app")
-        .with_exec(["/bin/sh", "-c", f"apk update && apk add --no-cache {container_type} python3={python_version} py3-pip && pip install --upgrade pip"])
+        # Install packages using wolfi's package manager
+        .with_exec(["/bin/ash", "-c", f"apk add --no-cache {container_type} python={python_version} && apk list"])
         .with_label("org.opencontainers.image.source", f"https://github.com/{username}/{repository}")
         .with_registry_auth(address="ghcr.io", username=username, secret=secret)
     )
