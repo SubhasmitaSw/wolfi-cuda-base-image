@@ -29,13 +29,14 @@ async def build_and_publish_image(client, os_version, cuda_version, container_ty
         .from_(base_image)
         .with_user("root")
         .with_workdir("/app")
-        # Install Micromamba
-        .with_exec(["/bin/sh", "-c", "apk add --no-cache curl bash && curl -Ls https://micro.mamba.pm/install.sh | bash && apk del bash", "--shell", "bash"])
+        # Install Micromamba without using bash
+        .with_exec(["/bin/ash", "-c", "apk add --no-cache curl && curl -Ls https://micro.mamba.pm/install.sh | /bin/ash"])
         # Install packages using Micromamba
-        .with_exec(["/bin/sh", "-c", f"micromamba install -y -n base -c conda-forge {container_type} python={python_version} && micromamba clean --all --yes && micromamba list", "--shell", "bash"])
+        .with_exec(["/bin/ash", "-c", f"micromamba install -y -n base -c conda-forge {container_type} python={python_version} && micromamba clean --all --yes && micromamba list"])
         .with_label("org.opencontainers.image.source", f"https://github.com/{username}/{repository}")
         .with_registry_auth(address="ghcr.io", username=username, secret=secret)
     )
+
 
     await container.publish(f"ghcr.io/{username}/{img_ref}")
 
