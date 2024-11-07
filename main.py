@@ -20,7 +20,7 @@ async def build_and_publish_image(client, os_version, cuda_version, container_ty
     # base_image = f"ghcr.io/mamba-org/micromamba:{os_version}-cuda-{cuda_version}"
 
     # Set up the base container with wolfi 
-    base_image = f"cgr.dev/chainguard/wolfi-base:cuda-{cuda_version}"
+    base_image = f"cgr.dev/chainguard/wolfi-base"
 
 
     secret = client.set_secret("password", password)
